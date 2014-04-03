@@ -1,3 +1,7 @@
+# -*- encoding: utf-8 -*-
+$:.push File.expand.path("../lib", __FILE__)
+require 'xmlmunger/0.0.1'
+
 Gem::Specification.new do |s|
   s.name        = 'xmlmunger'
   s.version     = '0.0.1'
@@ -14,5 +18,7 @@ Gem::Specification.new do |s|
   s.files       = ["lib/xmlmunger.rb"]
   s.homepage    = 'http://avantcredit.com'
   s.license       = 'MIT'
+
+  s.add_runtime_dependency 'nori'
 end
 
