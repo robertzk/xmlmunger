@@ -21,5 +21,18 @@ class ParserTest < Test::Unit::TestCase
     assert_equal hash, {"test_x_y"=>"1", "test_x_z"=>"2"}
   end
 
+  def test_sep_option
+    parser = ::XMLMunger::Parser.new('<x><y>1</y><z>2</z></x>')
+    hash = parser.run(sep: '-')
+    assert_equal hash, {"x-y"=>"1", "x-z"=>"2"}
+  end
+
+  def test_prohibited_types_option
+    parser = ::XMLMunger::Parser.new('<x><y><z>1</z><z>1</z></y><z>2</z></x>')
+    hash = parser.run(prohibited_types: [Array])
+    assert_equal hash, {"x_z"=>"2"}
+  end
+
+
 end
 
