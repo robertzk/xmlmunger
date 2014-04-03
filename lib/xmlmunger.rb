@@ -1,3 +1,7 @@
+require 'xmlmunger/version'
+require 'nori_constants'
+require 'nested_hash'
+require 'parser'
 
 module XMLMunger
 
