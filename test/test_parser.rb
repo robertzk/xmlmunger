@@ -9,5 +9,11 @@ class ParserTest < Test::Unit::TestCase
     assert_equal hash, {"x_y"=>"1", "x_z"=>"2"}
   end
 
+  def test_filter_option
+    parser = ::XMLMunger::Parser.new('<x><y>1</y><z>2</z></x>')
+    hash = parser.run(filter: [:x])
+    assert_equal hash, {"y"=>"1", "z"=>"2"}
+  end
+
 end
 
