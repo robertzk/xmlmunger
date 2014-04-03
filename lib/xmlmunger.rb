@@ -23,7 +23,7 @@ module XMLMunger
   module RSpec
     module Core
       class ExampleGroup
-        include ::TimeWarpAbility
+        include ::XMLMunger
        # Time warp to the specified time for the duration of the passed block.
       end
     end
