@@ -20,8 +20,8 @@ module XMLMunger
       raise TypeError.new("options argument must be a hash") unless options.is_a?(Hash)
       options = default_options.merge options
 
-      xml = options[:filter].inject(xml) { |hash, key| hash[key] }
-      array_of_arrays_of_data = NestedHash[@xml].map_values_with_route.map { |value|
+      @xml = options[:filter].inject(xml) { |hash, key| hash[key] }
+      array_of_arrays_of_data = NestedHash[xml].map_values_with_route.map { |value|
         [options[:prefix] + value[0..value.length-2].map(&:to_s).join(options[:sep]), value[value.length-1]]
       }.select { |v| !(options[:prohibited_types].any? { |type| v[1].is_a?(type) }) } 
       Hash[array_of_arrays_of_data]
