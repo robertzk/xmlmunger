@@ -20,8 +20,9 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.require_paths = %w[lib]
   s.files = `git ls-files`.split("\n")
-  s.test_files = Dir['lib/**/test_*.rb']
+  s.test_files = `git ls-files -- {test,spec,features}/*`.split("\n")
 
+  s.add_dependency 'nokogiri', '>= 1.6.1'
   s.add_dependency 'nori', '>= 2.3.0'
 
   s.add_development_dependency 'rake', '~> 0.9.0'

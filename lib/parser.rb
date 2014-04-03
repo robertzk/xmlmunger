@@ -1,3 +1,5 @@
+require 'nori'
+
 module XMLMunger
 
   class Parser
@@ -8,7 +10,7 @@ module XMLMunger
         unless xml.is_a?(String)
           raise ArgumentError.new("Argument xml should be a Hash or String (XML file).")
         end
-        @xml = Nori.new(NoriConstants.default_options.merge(nori_options)).parse(xml)
+        @xml = ::Nori.new(NoriConstants.default_options.merge(nori_options)).parse(xml)
       else
         @xml = xml
       end
