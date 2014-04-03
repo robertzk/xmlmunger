@@ -1,2 +1,3 @@
-require_relative 'test_nested_hash.rb'
-require_relative 'test_parser.rb'
+require 'test/unit'
+#load 'test_nested_hash.rb'
+#load 'test_parser.rb'
