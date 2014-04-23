@@ -22,10 +22,10 @@ module XMLMunger
 
       @xml = options[:filter].inject(xml) { |hash, key| hash[key] }
       array_of_arrays_of_data = NestedHash[xml].map_values_with_route do |route, value|
+        next if route.any? { |r| r =~ /@/ } && !options[:attributes] # skip attributes
         route.map! { |s| s.to_s.tr(options[:strip_chars], '') }
         route = route.join(options[:sep])
         key = options[:prefix] + route
-        next if key =~ /@/ && !options[:attributes] # skip attributes
         # TODO: Should we parse out attributes from nested tags?
 
         [key, value]
