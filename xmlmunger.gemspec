@@ -3,7 +3,7 @@ require './lib/xmlmunger/version'
 
 Gem::Specification.new do |s|
   s.name        = 'xmlmunger'
-  s.version     = '0.0.2'
+  s.version     = '0.0.3'
   s.date        = '2014-04-03'
   s.summary     = 'Convert XML files into flat hashes with automatic naming via nested paths'
   s.description = %(XML files typically come in nested structures. For data extraction purposes,
