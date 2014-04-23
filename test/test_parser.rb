@@ -45,6 +45,10 @@ class ParserTest < Test::Unit::TestCase
     assert_equal({"x_@a" => "1"}, hash)
     hash = parser.run(attributes: false)
     assert_equal({}, hash)
+    hash = parser.run(attributes: true, strip_chars: '@')
+    assert_equal({"x_a" => "1"}, hash)
+    hash = parser.run(attributes: false, strip_chars: '@')
+    assert_equal({}, hash)
   end
 
 
