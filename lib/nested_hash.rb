@@ -22,8 +22,8 @@ module XMLMunger
     # Map terminal hash values in a nested hash *with* route tracking
     # > nh = NestedHash[a: { c: 2 }, b: 1]
     # => { a: { c: 2 }, b: 1 }
-    # > nh.transform_with_route { |value, route| "#{route.join(' -> ')} -> #{value}" }
-    # => { a: { c: 3 }, b: 2 }
+    # > nh.transform_with_route { |route, value| "#{route.join(' -> ')} -> #{value}" }
+    # => { a: { c: "a -> c -> 2" }, b: "b -> 1" }
     #######
     def transform_with_route(route = [], &block)
       NestedHash[self.map { |key, value|
