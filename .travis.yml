@@ -3,3 +3,4 @@ rvm:
   - 1.9.3
 before_install:
   - gem install nokogiri -- --with-cflags='--std=gnu99'
+env: CODECLIMATE_REPO_TOKEN=540a9a9dd5d7371276ffd320c85d936726dd362b6b2c0333017c13ff5e133a7d 

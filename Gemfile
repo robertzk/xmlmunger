@@ -3,13 +3,14 @@ source 'https://rubygems.org'
 gem 'nokogiri'
 gem 'nori'
 
-# tests
-gem 'test-unit', '>= 1.2.3'
-
-# Code coverage
-gem 'coveralls' #, require: false
 
 group :test do
+  gem 'test-unit', '>= 1.2.3'
+  gem 'codeclimate-test-reporter', require: nil
+
   gem 'rake'
+
+  # Code coverage
+  # gem 'coveralls', require: false
 end
 
