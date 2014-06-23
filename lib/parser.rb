@@ -20,8 +20,8 @@ module XMLMunger
       raise TypeError.new("options argument must be a hash") unless options.is_a?(Hash)
       options = default_options.merge options
 
-      @xml = options[:filter].inject(xml) { |hash, key| hash[key] }
-      array_of_arrays_of_data = NestedHash[xml].map_values_with_route do |route, value|
+      filtered = options[:filter].inject(xml) { |hash, key| hash[key] }
+      array_of_arrays_of_data = NestedHash[filtered].map_values_with_route do |route, value|
         next if route.any? { |r| r =~ /@/ } && !options[:attributes] # skip attributes
         route.map! { |s| s.to_s.tr(options[:strip_chars], '') }
         route = route.join(options[:sep])
@@ -29,7 +29,7 @@ module XMLMunger
         # TODO: Should we parse out attributes from nested tags?
 
         [key, value]
-      end.compact.reject { |k, v| options[:prohibited_types].any? { |type| v.is_a?(type) } } 
+      end.compact.reject { |k, v| options[:prohibited_types].any? { |type| v.is_a?(type) } }
       Hash[array_of_arrays_of_data]
     end
 
