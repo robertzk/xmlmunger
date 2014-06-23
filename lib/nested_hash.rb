@@ -59,8 +59,8 @@ module XMLMunger
     # Map terminal hash values in a nested hash to an array *with* route tracking
     # > nh = NestedHash[a: { c: 2 }, b: 1]
     # => { a: { c: 2 }, b: 1 }
-    # > nh.map_values_with_route { |value, route| route.concat value }
-    # => [[:a, :c, 2], [:b, 1]]
+    # > nh.map_values_with_route { |route, value| route << value**value }
+    # => [[:a, :c, 4], [:b, 1]]
     #######
     def map_values_with_route(route = [], &block)
       values = []
