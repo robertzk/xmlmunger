@@ -1,14 +1,15 @@
 require 'xmlmunger/version'
 require 'nori_constants'
 require 'nested_hash'
+require 'list_heuristics'
 require 'parser'
 
 module XMLMunger
 
   # Add native support to testing libraries
 
-  module Test # :nodoc:
-    module Unit # :nodoc:
+  module Test
+    module Unit
       class TestCase
         include ::XMLMunger
       end
@@ -28,7 +29,6 @@ module XMLMunger
     module Core
       class ExampleGroup
         include ::XMLMunger
-       # Time warp to the specified time for the duration of the passed block.
       end
     end
   end
