@@ -28,7 +28,7 @@ module XMLMunger
     end
 
     def skipped_types
-      @skipped_types ||= [:unique, :duplicates]
+      @skipped_types ||= [:strings]
     end
 
     def shared_key_hashes?
@@ -70,7 +70,7 @@ module XMLMunger
     # Allow caller to ignore certain data types
     def filter_types(input)
       input.reject { |k,v|
-        ( skipped_types + [:notype] ).include?(v[:type])
+        ( skipped_types + [:notype, :other] ).include?(v[:type])
       }
     end
 
@@ -98,7 +98,7 @@ module XMLMunger
 
     # assign the list of values into its proper type
     # also return the appropriate transformation of the input list
-    TYPES = [:boolean?, :singleton?, :days?, :numeric?, :notype?, :unique?]
+    TYPES = [:boolean?, :singleton?, :days?, :numeric?, :strings?, :notype?]
     def identity(vals, memo = {})
       TYPES.each do |key|
         if compute(key, vals, memo)
@@ -107,7 +107,7 @@ module XMLMunger
           return type, val
         end
       end
-      return :duplicates, vals
+      return :other, vals
     end
 
     # memoized computations for #identity
@@ -122,8 +122,8 @@ module XMLMunger
           all_type?(vals, Date, Time)
         when :numeric?
           compute(:numeric, vals, store).all?
-        when :unique?
-          compute(:unique, vals, store).count == vals.count
+        when :strings?
+          common_type(vals) <= String
         when :notype?
           common_type(vals) == Object
         # thens
@@ -163,14 +163,7 @@ module XMLMunger
       {has: has, vec: vec}
     end
 
-    def extract_unique(items)
-      items.reduce({}) do |acc,item|
-        acc[var_name_for_string(item)] = 1
-        acc
-      end
-    end
-
-    def extract_duplicates(items)
+    def extract_strings(items)
       h = Hash.new(0)
       items.each{ |i| h[i] += 1 }
       h.reduce({}) do |acc,(item,count)|
