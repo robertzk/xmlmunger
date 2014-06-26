@@ -21,8 +21,10 @@ module XMLMunger
       @multiple ||= @list.count > 1
     end
 
-    def common_type
-      @common_type ||= @list.map{|x|x.class.ancestors}.reduce(:&).first
+    def common_type(of = nil)
+          @common_types ||= {}
+                     of ||= @list
+      @common_types[of] ||= of.map{|x|x.class.ancestors}.reduce(:&).first
     end
 
     def skipped_types
@@ -67,8 +69,8 @@ module XMLMunger
 
     # Allow caller to ignore certain data types
     def filter_types(input)
-      input.select { |k,v|
-        !skipped_types.include?(v[:type])
+      input.reject { |k,v|
+        ( skipped_types + [:notype] ).include?(v[:type])
       }
     end
 
@@ -96,8 +98,9 @@ module XMLMunger
 
     # assign the list of values into its proper type
     # also return the appropriate transformation of the input list
+    TYPES = [:boolean?, :singleton?, :days?, :numeric?, :notype?, :unique?]
     def identity(vals, memo = {})
-      [:boolean?, :singleton?, :days?, :numeric?, :unique?].each do |key|
+      TYPES.each do |key|
         if compute(key, vals, memo)
           type = key[0...-1].to_sym
           val = compute(type, vals, memo)
@@ -107,7 +110,7 @@ module XMLMunger
       return :duplicates, vals
     end
 
-    # memoized computations for #identify
+    # memoized computations for #identity
     def compute(what, vals, store)
       store[what] ||= case what
         # ifs
@@ -121,6 +124,8 @@ module XMLMunger
           compute(:numeric, vals, store).all?
         when :unique?
           compute(:unique, vals, store).count == vals.count
+        when :notype?
+          common_type(vals) == Object
         # thens
         when :singleton
           compute(:unique, vals, store).first
