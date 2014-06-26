@@ -95,7 +95,7 @@ module XMLMunger
     end
 
     # assign the list of values into its proper type
-    # also returns the appropriate transformation of the input list
+    # also return the appropriate transformation of the input list
     def identity(vals, memo = {})
       [:boolean?, :singleton?, :days?, :numeric?, :unique?].each do |key|
         if compute(key, vals, memo)
