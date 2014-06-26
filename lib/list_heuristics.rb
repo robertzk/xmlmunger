@@ -4,12 +4,6 @@ module XMLMunger
   class StateError < StandardError; end
   class ListHeuristics
 
-    def self.stats(enum, which = nil)
-      enum.extend(DescriptiveStatistics)
-      which ||= :descriptive_statistics
-      enum.public_send(which)
-    end
-
     def initialize(list)
       raise ArgumentError, "Argument must be an array" unless list.is_a?(Array)
       @list = list
@@ -31,6 +25,10 @@ module XMLMunger
       @common_type ||= @list.map{|x|x.class.ancestors}.reduce(:&).first
     end
 
+    def skipped_types
+      @skipped_types ||= [:unique, :duplicates]
+    end
+
     def shared_key_hashes?
       @shared_key_hashes ||=
         multiple? &&
@@ -39,55 +37,43 @@ module XMLMunger
               @list[1..-1].all? { |hash| hash.keys == keys }
     end
 
-    def string?
-      @string ||= !!(common_type <= String)
-    end
-
-    def numeric?
-      @numeric ||= case
-        when common_type <= Numeric
-          @list
-        when string?
-          @list.map{ |x| to_numeric(x) }.compact
-        else
-          []
+    def to_variable_hash
+      return {} if empty?
+      return {nil => @list.first} if singleton?
+      if shared_key_hashes?
+        merged = merge_hashes(@list)
+        typed = classify(merged)
+      else
+        type, data = identity(@list)
+        typed = { nil => { type: type, data: data } }
       end
-      @numeric.count == @list.count
-    end
-
-    def hash_stats
-      raise StateError, oneline(%{Can only compute hash statistics
-        on lists of hashes with identical keys!}) unless shared_key_hashes?
-      merged = merge_hashes(@list)
-      typed = classify(merged)
       apply(typed)
     end
 
     private
 
+    # call data extraction functions
+    # returns a variable hash
     def apply(input)
-      input.reduce({}) do |out, (var,with)|
+      filter_types(input).reduce({}) do |out, (var,with)|
         func = "extract_#{with[:type]}".to_sym
         self.send(func, with[:data]).each do |key,val|
-          ind = var.to_s + (key ? "_#{key.to_s}" : "")
+          ind = [var,key].map(&:to_s).reject{ |s| s.empty? }.join('_')
           out[ind] = val
         end
         out
       end
     end
 
-    def to_numeric(anything)
-      float = Float(anything)
-      int = Integer(anything) rescue float
-      float == int ? int : float
-    rescue
-      nil
+    # Allow caller to ignore certain data types
+    def filter_types(input)
+      input.select { |k,v|
+        !skipped_types.include?(v[:type])
+      }
     end
 
-    def oneline(str)
-      str.strip.gsub(/\s+/, " ")
-    end
-
+    # merge multiple hashes with the same keys
+    # resulting hash values are arrays of the input values
     def merge_hashes(hashes)
       keys = hashes.first.keys
       container = Hash[*keys.map{|k|[k,[]]}.flatten(1)]
@@ -95,17 +81,8 @@ module XMLMunger
       container
     end
 
-    def is_sequence?(nums, min_length = nil)
-      (min_length.nil? || nums.count >= min_length) &&
-        nums == (nums.min..nums.max).to_a
-    end
-
-    def all_large?(nums)
-      nums.all? { |n|
-        n > 1000000
-      }
-    end
-
+    # discover type information for each
+    # key,value pair of the input hash
     def classify(hash)
       hash.reduce({}) do |acc, (var, vals)|
         type, data = identity(vals)
@@ -117,31 +94,50 @@ module XMLMunger
       end
     end
 
-    def all_type(objects, *types)
-      objects.all? { |obj|
-        types.any?{ |c| obj.is_a?(c) }
-      }
+    # assign the list of values into its proper type
+    # also returns the appropriate transformation of the input list
+    def identity(vals, memo = {})
+      [:boolean?, :singleton?, :days?, :numeric?, :unique?].each do |key|
+        if compute(key, vals, memo)
+          type = key[0...-1].to_sym
+          val = compute(type, vals, memo)
+          return type, val
+        end
+      end
+      return :duplicates, vals
     end
 
-    def identity(vals)
-      case
-      when (unique = vals.uniq).count == 1
-        return :singleton, unique.first
-      when all_type(vals, TrueClass, FalseClass)
-        return :boolean, vals
-      when all_type(vals, Date, Time)
-        dates = vals.map{ |x| x.to_date }
-        epoch = Date.new(1970,1,1)
-        days = dates.map { |d| (d - epoch).to_i }
-        return :days, days
-      when ( numbers = vals.map{ |x| to_numeric(x) } ).all?
-        return :numeric, numbers
-      when unique.count == vals.count
-        return :unique, vals
-      else
-        return :duplicates, vals
+    # memoized computations for #identify
+    def compute(what, vals, store)
+      store[what] ||= case what
+        # ifs
+        when :singleton?
+          compute(:unique, vals, store).count == 1
+        when :boolean?
+          all_type?(vals, TrueClass, FalseClass)
+        when :days?
+          all_type?(vals, Date, Time)
+        when :numeric?
+          compute(:numeric, vals, store).all?
+        when :unique?
+          compute(:unique, vals, store).count == vals.count
+        # thens
+        when :singleton
+          compute(:unique, vals, store).first
+        when :unique
+          vals.uniq
+        when :numeric
+          vals.map{ |x| to_numeric(x) }
+        when :days
+          dates = vals.map{ |x| x.to_date }
+          epoch = Date.new(1970,1,1)
+          dates.map { |d| (d - epoch).to_i }
+        else
+          vals
       end
     end
+
+    # Data Extraction Functions
 
     def extract_singleton(item)
       {nil => item}
@@ -190,6 +186,33 @@ module XMLMunger
       else
         difference_comps(numbers)
       end
+    end
+
+    # Utility Functions
+
+    def to_numeric(anything)
+      float = Float(anything)
+      int = Integer(anything) rescue float
+      float == int ? int : float
+    rescue
+      nil
+    end
+
+    def is_sequence?(nums, min_length = nil)
+      (min_length.nil? || nums.count >= min_length) &&
+        nums == (nums.min..nums.max).to_a
+    end
+
+    def all_large?(nums)
+      nums.all? { |n|
+        n > 1000000
+      }
+    end
+
+    def all_type?(objects, *types)
+      objects.all? { |obj|
+        types.any?{ |c| obj.is_a?(c) }
+      }
     end
 
     def difference_comps(data)
