@@ -148,13 +148,18 @@ module XMLMunger
     end
 
     def extract_boolean(vals)
-      val = vals.uniq.reduce(0) do |n, bool|
+      has, vec = 0, 0
+      vals.each do |bool|
         case bool
-        when FalseClass then n+1
-        when TrueClass then n+2
+        when FalseClass
+          has |= 1
+          vec -= 1
+        when TrueClass
+          has |= 2
+          vec += 1
         end
       end
-      {nil => val}
+      {has: has, vec: vec}
     end
 
     def extract_unique(items)
