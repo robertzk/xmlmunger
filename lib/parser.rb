@@ -17,20 +17,31 @@ module XMLMunger
     end
 
     def run options = {}
+      # prepare the options hash
       raise TypeError.new("options argument must be a hash") unless options.is_a?(Hash)
       options = default_options.merge options
-
+      # move to the starting point and traverse the xml
       filtered = options[:filter].inject(xml) { |hash, key| hash[key] }
-      array_of_arrays_of_data = NestedHash[filtered].map_values_with_route do |route, value|
-        next if route.any? { |r| r =~ /@/ } && !options[:attributes] # skip attributes
-        route.map! { |s| s.to_s.tr(options[:strip_chars], '') }
-        route = route.join(options[:sep])
-        key = options[:prefix] + route
-        # TODO: Should we parse out attributes from nested tags?
-
+      traverse = NestedHash[filtered].map_values_with_route do |route, value|
+        # skip attributes?
+        next if !options[:attributes] && route.any? { |r| r =~ /@/ }
+        # prohibited type?
+        next if options[:prohibited_types].any? { |type| value.is_a?(type) }
+        # extract data from lists
+        value = ListHeuristics.new(value).to_variable_hash if value.is_a?(Array)
+        [route, value]
+      end.compact
+      # create variable:value mapping
+      # need the second iteration in case of list data
+      parsed = NestedHash[traverse].map_values_with_route do |route, value|
+        key = route.flatten.
+              map { |s| s.to_s.tr(options[:strip_chars], '') }.
+              reject{ |s| s.empty? }.
+              join(options[:sep]).
+              prepend(options[:prefix])
         [key, value]
-      end.compact.reject { |k, v| options[:prohibited_types].any? { |type| v.is_a?(type) } }
-      Hash[array_of_arrays_of_data]
+      end
+      NestedHash[parsed]
     end
 
     protected
