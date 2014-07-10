@@ -34,11 +34,7 @@ module XMLMunger
       # create variable:value mapping
       # need the second iteration in case of list data
       parsed = NestedHash[traverse].map_values_with_route do |route, value|
-        key = route.flatten.
-              map { |s| s.to_s.tr(options[:strip_chars], '') }.
-              reject{ |s| s.empty? }.
-              join(options[:sep]).
-              prepend(options[:prefix])
+        key = make_key(route, options)
         [key, value]
       end
       NestedHash[parsed]
@@ -55,6 +51,17 @@ module XMLMunger
         attributes: true, # Whether or not to parse XML tag attributes
         prohibited_types: [Array]
       }
+    end
+
+    private
+
+    def make_key(route, options)
+      route.
+        flatten.
+        map { |s| s.to_s.tr(options[:strip_chars], '') }.
+        reject { |s| s.empty? }.
+        join(options[:sep]).
+        prepend(options[:prefix])
     end
 
   end
