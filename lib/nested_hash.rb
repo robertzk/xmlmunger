@@ -2,6 +2,17 @@ module XMLMunger
 
   class NestedHash < Hash
     #######
+    # Don't lose class type
+    #######
+    (Hash.instance_methods - Object.instance_methods).each do |m|
+      define_method(m) { |*args, &block|
+        result = super(*args, &block)
+        return NestedHash[result] if result.class == Hash
+        result
+      }
+    end
+
+    #######
     # Map terminal hash values in a nested hash
     # > nh = NestedHash[a: { c: 2 }, b: 1]
     # => { a: { c: 2 }, b: 1 }
