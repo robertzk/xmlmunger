@@ -1,8 +1,8 @@
 require 'xmlmunger/version'
-require 'nori_constants'
-require 'nested_hash'
-require 'list_heuristics'
-require 'parser'
+require 'xmlmunger/nori_constants'
+require 'xmlmunger/nested_hash'
+require 'xmlmunger/list_heuristics'
+require 'xmlmunger/parser'
 
 module XMLMunger
 
