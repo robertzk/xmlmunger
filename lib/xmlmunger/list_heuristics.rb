@@ -198,7 +198,7 @@ module XMLMunger
 
     def is_sequence?(nums, min_length = nil)
       (min_length.nil? || nums.count >= min_length) &&
-        nums == (nums.min..nums.max).to_a
+        nums == (nums.min..nums.max).first(nums.count)
     end
 
     def all_large?(nums)
