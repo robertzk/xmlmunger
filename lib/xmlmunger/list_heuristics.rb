@@ -171,7 +171,7 @@ module XMLMunger
 
     def to_numeric(anything)
       float = Float(anything)
-      int = Integer(anything) rescue float
+      int = Integer(anything, 10) rescue float
       float == int ? int : float
     rescue
       nil
