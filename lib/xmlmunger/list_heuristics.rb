@@ -31,24 +31,11 @@ module XMLMunger
       @skipped_types ||= [:strings]
     end
 
-    def shared_key_hashes?
-      @shared_key_hashes ||=
-        multiple? &&
-          common_type == Hash &&
-            (keys = @list.first.keys) &&
-              @list[1..-1].all? { |hash| hash.keys == keys }
-    end
-
     def to_variable_hash
       return {} if empty?
       return {nil => @list.first} if singleton?
-      if shared_key_hashes?
-        merged = merge_hashes(@list)
-        typed = classify(merged)
-      else
-        type, data = identity(@list)
-        typed = { nil => { type: type, data: data } }
-      end
+      type, data = identity(@list)
+      typed = { nil => { type: type, data: data } }
       apply(typed)
     end
 
@@ -69,36 +56,13 @@ module XMLMunger
 
     # Allow caller to ignore certain data types
     def filter_types(input)
-      input.reject { |k,v|
-        ( skipped_types + [:notype, :other] ).include?(v[:type])
-      }
-    end
-
-    # merge multiple hashes with the same keys
-    # resulting hash values are arrays of the input values
-    def merge_hashes(hashes)
-      keys = hashes.first.keys
-      container = Hash[*keys.map{|k|[k,[]]}.flatten(1)]
-      hashes.each { |hash| hash.each { |(k,v)| container[k] << v } }
-      container
-    end
-
-    # discover type information for each
-    # key,value pair of the input hash
-    def classify(hash)
-      hash.reduce({}) do |acc, (var, vals)|
-        type, data = identity(vals)
-        acc[var] = {
-          type: type,
-          data: data
-        }
-        acc
-      end
+      to_reject = skipped_types + [:notype, :other]
+      input.reject { |_,v| to_reject.include?(v[:type]) }
     end
 
     # assign the list of values into its proper type
     # also return the appropriate transformation of the input list
-    TYPES = [:boolean?, :singleton?, :days?, :numeric?, :strings?, :notype?]
+    TYPES = [:shared_key_hashes?, :boolean?, :singleton?, :days?, :numeric?, :strings?, :notype?]
     def identity(vals, memo = {})
       TYPES.each do |key|
         if compute(key, vals, memo)
@@ -124,6 +88,12 @@ module XMLMunger
           compute(:numeric, vals, store).all?
         when :strings?
           common_type(vals) <= String
+        when :shared_key_hashes?
+          vals.count > 1 && compute(:hash?, vals, store) &&
+            (keys = vals.first.keys) &&
+            vals[1..-1].all? { |hash| hash.keys == keys }
+        when :hash?
+          common_type(vals) <= Hash
         when :notype?
           common_type(vals) == Object
         # thens
@@ -137,6 +107,8 @@ module XMLMunger
           dates = vals.map{ |x| x.to_date }
           epoch = Date.new(1970,1,1)
           dates.map { |d| (d - epoch).to_i }
+        when :shared_key_hashes
+          merge_hashes(vals)
         else
           vals
       end
@@ -184,6 +156,15 @@ module XMLMunger
       else
         difference_comps(numbers)
       end
+    end
+
+    def extract_shared_key_hashes(hash)
+      typed = hash.reduce({}) do |acc, (var, vals)|
+        type, data = identity(vals)
+        acc[var] = { type: type, data: data }
+        acc
+      end
+      apply(typed)
     end
 
     # Utility Functions
@@ -236,6 +217,15 @@ module XMLMunger
         base += key.to_s.strip.gsub(/\s+/, "_").downcase
       end
       base
+    end
+
+    # merge multiple hashes with the same keys
+    # resulting hash values are arrays of the input values
+    def merge_hashes(hashes)
+      keys = hashes.first.keys
+      container = Hash[*keys.map{|k|[k,[]]}.flatten(1)]
+      hashes.each { |hash| hash.each { |(k,v)| container[k] << v } }
+      container
     end
 
   end
