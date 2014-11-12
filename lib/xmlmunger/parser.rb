@@ -17,9 +17,15 @@ module XMLMunger
     end
 
     def run options = {}
+      parsed = decompose_hash(options)
+      NestedHash[parsed]
+    end
+
+    def decompose_hash options = {}
       # prepare the options hash
       raise TypeError.new("options argument must be a hash") unless options.is_a?(Hash)
       options = default_options.merge options
+
       # move to the starting point and traverse the xml
       filtered = options[:filter].inject(xml) { |hash, key| hash[key] }
       traverse = NestedHash[filtered].map_values_with_route do |route, value|
@@ -28,16 +34,17 @@ module XMLMunger
         # prohibited type?
         next if options[:prohibited_types].any? { |type| value.is_a?(type) }
         # extract data from lists
-        value = ListHeuristics.new(value).to_variable_hash if value.is_a?(Array)
+        value = ListHeuristics.new(value,options).to_variable_hash if value.is_a?(Array)
         [route, value]
       end.compact
+
       # create variable:value mapping
       # need the second iteration in case of list data
       parsed = NestedHash[traverse].map_values_with_route do |route, value|
         key = make_key(route, options)
         [key, value]
       end
-      NestedHash[parsed]
+      parsed
     end
 
     protected

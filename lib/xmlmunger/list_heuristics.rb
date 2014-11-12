@@ -4,9 +4,10 @@ module XMLMunger
   class StateError < StandardError; end
   class ListHeuristics
 
-    def initialize(list)
+    def initialize(list, options={})
       raise ArgumentError, "Argument must be an array" unless list.is_a?(Array)
       @list = list
+      @options = options
     end
 
     def empty?
@@ -33,7 +34,6 @@ module XMLMunger
 
     def to_variable_hash
       return {} if empty?
-      return {nil => @list.first} if singleton?
       type, data = identity(@list)
       typed = { nil => { type: type, data: data } }
       apply(typed)
@@ -62,7 +62,7 @@ module XMLMunger
 
     # assign the list of values into its proper type
     # also return the appropriate transformation of the input list
-    TYPES = [:shared_key_hashes?, :boolean?, :singleton?, :days?, :numeric?, :strings?, :notype?]
+    TYPES = [:array?,:hashes?, :boolean?, :singleton?, :days?, :numeric?, :strings?, :notype?]
     def identity(vals, memo = {})
       TYPES.each do |key|
         if compute(key, vals, memo)
@@ -88,14 +88,13 @@ module XMLMunger
           compute(:numeric, vals, store).all?
         when :strings?
           common_type(vals) <= String
-        when :shared_key_hashes?
-          vals.count > 1 && compute(:hash?, vals, store) &&
-            (keys = vals.first.keys) &&
-            vals[1..-1].all? { |hash| hash.keys == keys }
-        when :hash?
+        when :hashes?
           common_type(vals) <= Hash
         when :notype?
           common_type(vals) == Object
+        when :array?
+          common_type(vals) == Array
+
         # thens
         when :singleton
           compute(:unique, vals, store).first
@@ -107,8 +106,8 @@ module XMLMunger
           dates = vals.map{ |x| x.to_date }
           epoch = Date.new(1970,1,1)
           dates.map { |d| (d - epoch).to_i }
-        when :shared_key_hashes
-          merge_hashes(vals)
+        when :hashes
+          create_aggregate_hash(vals)
         else
           vals
       end
@@ -167,6 +166,17 @@ module XMLMunger
       apply(typed)
     end
 
+    def extract_array(arrays)
+      extracted = arrays.map do |array|
+        ListHeuristics.new(array,@options).to_variable_hash
+      end
+      ListHeuristics.new(extracted,@options).to_variable_hash
+    end
+
+    def extract_hashes(aggr_hash)
+      ::XMLMunger::Parser.new(aggr_hash).run(@options)
+    end
+
     # Utility Functions
 
     def to_numeric(anything)
@@ -223,10 +233,28 @@ module XMLMunger
     # resulting hash values are arrays of the input values
     def merge_hashes(hashes)
       keys = hashes.first.keys
-      container = Hash[*keys.map{|k|[k,[]]}.flatten(1)]
+      container = Hash[*keys.map{|k| [k,[]] }.flatten(1)]
       hashes.each { |hash| hash.each { |(k,v)| container[k] << v } }
       container
     end
 
+    def create_aggregate_hash(hashes)
+      container = Hash.new{ |hash,key| hash[key] = [] }
+      hashes.each{ |hash| hash.each { |k,v| container[k] << v} }
+
+      container.keys.each do |key|
+        if container[key].count == 1
+          # tear off extra array level added above if not needed
+          container[key] = container[key].first
+        else
+          # if we have an array of arrays/hashes, break open the array
+          # ex. [ [], {} ]  --> [ {}, {}, {}, {}]
+          # Why? They all had the same keys. The array is going to contain
+          # hashes similar to the hash outside of the array.
+          container[key] = container[key].flatten(1)
+        end
+      end
+      container
+    end
   end
 end
