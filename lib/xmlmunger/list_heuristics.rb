@@ -7,6 +7,11 @@ module XMLMunger
     def initialize(list, options={})
       raise ArgumentError, "Argument must be an array" unless list.is_a?(Array)
       @list = list
+      # Before Rails 4, active_support/core_ext/range/blockless_step.rb monkey
+      # patches Range#step to return an array instead of an enumerator using
+      # alias_method_chain; detect this and use the original function instead.
+      @step_func = (0..3).respond_to?(:step_without_blockless) ?
+                                      :step_without_blockless : :step
       @options = options
     end
 
@@ -189,7 +194,7 @@ module XMLMunger
 
     def is_sequence?(nums, min_length = nil)
       (min_length.nil? || nums.count >= min_length) &&
-        nums == (nums.min..nums.max).step(1).first(nums.count)
+        nums == (nums.min..nums.max).send(@step_func, 1).first(nums.count)
     end
 
     def all_large?(nums)

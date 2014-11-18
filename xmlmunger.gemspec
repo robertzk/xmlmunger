@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
   s.homepage    = 'https://github.com/robertzk/xmlmunger'
 
   s.platform = Gem::Platform::RUBY
+  s.required_ruby_version = '>= 1.9.2'
   s.require_paths = %w[lib]
   s.files = `git ls-files`.split("\n")
   s.test_files = `git ls-files -- {test,spec,features}/*`.split("\n")
