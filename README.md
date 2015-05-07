@@ -1,5 +1,5 @@
 XML Munger: Transform XML files into hashes
-=========
+==========
 
 Convert XML files into flat hashes with automatic naming via nested paths
 
