@@ -154,12 +154,15 @@ module XMLMunger
     end
 
     def extract_numeric(numbers)
-      case
-      when is_sequence?(numbers,3), all_large?(numbers)
+      if all_large?(numbers) || range_too_wide?(numbers) || is_sequence?(numbers,3)
         {} # do nothing; junk data
       else
         difference_comps(numbers)
       end
+    end
+
+    def range_too_wide?(nums)
+      (nums.max - nums.min) > 10000
     end
 
     def extract_shared_key_hashes(hash)
