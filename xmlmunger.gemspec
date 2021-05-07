@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 require './lib/xmlmunger/version'
+require 'date'
 
 Gem::Specification.new do |s|
   s.name        = 'xmlmunger'
